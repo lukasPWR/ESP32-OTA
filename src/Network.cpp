@@ -2,20 +2,23 @@
 #include <WiFi.h>
 #define WIFI_SSID "ADEN_TP"
 #define WIFI_PASS "123456789012345678901234567"
-//#define BASE_URL "https://www.google.pl/?hl=pl"
-#define BASE_URL "http://192.168.0.106/OTA/api.php?action"  
+// #define BASE_URL "https://www.google.pl/?hl=pl"
+#define BASE_URL "http://192.168.0.110/OTA/api.php"
 
 const String API_KEY = "THIS_IS_MY_OWN_API_KEY";
 
-Network::Network() {
+Network::Network()
+{
   localServerTime = 0;
 }
 
-void Network::WiFiBegin() {
+void Network::WiFiBegin()
+{
   WiFi.disconnect();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(1000);
     Serial.println("Connecting to WiFi..");
   }
@@ -23,19 +26,23 @@ void Network::WiFiBegin() {
   Serial.println("Connected to the WiFi network");
 }
 
-void Network::fetchLocalServerTime() {
-  if ((WiFi.status() == WL_CONNECTED)) {
+void Network::fetchLocalServerTime()
+{
+  if ((WiFi.status() == WL_CONNECTED))
+  {
     String targetURL = BASE_URL;
-    targetURL += "=time";
- 
+    targetURL += "?action=time";
+
     http.begin(targetURL);
 
-    if (http.GET() == HTTP_CODE_OK) {
+    if (http.GET() == HTTP_CODE_OK)
+    {
       String payload = http.getString();
       Serial.println(payload);
 
       DeserializationError error = deserializeJson(doc, payload);
-      if (error) {
+      if (error)
+      {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.f_str());
         return;
@@ -45,8 +52,9 @@ void Network::fetchLocalServerTime() {
       Serial.println(time);
       Serial.println(time.toInt());
       localServerTime = time.toInt();
-
-    } else {
+    }
+    else
+    {
       Serial.println("Error on HTTP request");
     }
 
@@ -54,27 +62,32 @@ void Network::fetchLocalServerTime() {
   }
 }
 
-long Network::getLocalServerTime() {
+long Network::getLocalServerTime()
+{
   return localServerTime;
 }
 
-Firmware Network::checkVersion() {
+Firmware Network::checkVersion()
+{
 
   Firmware firmware;
   firmware.build_num = -1;
 
-  if ((WiFi.status() == WL_CONNECTED)) {
+  if ((WiFi.status() == WL_CONNECTED))
+  {
 
     String targetURL = BASE_URL;
-    targetURL += "=version";
+    targetURL += "?action=version";
     http.begin(targetURL);
 
-    if (http.GET() == HTTP_CODE_OK) {
+    if (http.GET() == HTTP_CODE_OK)
+    {
       String payload = http.getString();
       Serial.println(payload);
 
       DeserializationError error = deserializeJson(doc, payload);
-      if (error) {
+      if (error)
+      {
         Serial.print(F("deserializeJson() failed: "));
         Serial.println(error.f_str());
         return firmware;
@@ -86,8 +99,9 @@ Firmware Network::checkVersion() {
       firmware.server_file_path = doc["serverFilePath"].as<String>();
       firmware.file_size = doc["fileSize"];
       firmware.md5_checksum = doc["md5Checksum"].as<String>();
-
-    } else {
+    }
+    else
+    {
       Serial.println("Error on HTTP request");
     }
 
@@ -97,23 +111,29 @@ Firmware Network::checkVersion() {
   return firmware;
 }
 
-String Network::fileDownload(FuncPtrInt callback, FileIO** fileIO, String target_path) {
+String Network::fileDownload(FuncPtrInt callback, FileIO **fileIO, String target_path)
+{
 
   String md5CheckSum = "wrong";
 
-  if ((WiFi.status() == WL_CONNECTED)) {
+  if ((WiFi.status() == WL_CONNECTED))
+  {
     fs::File file = (*fileIO)->openFile(FileIO::TEMP_BIN_FILE, false);
 
-    String targetURL = "http://192.168.0.106/OTA/api.php/api/post/update"  ;
-   // targetURL += "/api/post/update";
+    String targetURL = BASE_URL;
 
     http.begin(targetURL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    Serial.println(target_path);
     String httpRequestData = "api_key=" + API_KEY + "&target_path=" + target_path;
 
-    if (file && http.POST(httpRequestData) == HTTP_CODE_OK) {
+    if (file && http.POST(httpRequestData) == HTTP_CODE_OK)
+    {
       callback(0);
       (*fileIO)->mdContextInit();
+
+      // String payload = http.getString();
+      // Serial.println(payload);
 
       int fileSize = http.getSize();
       Serial.print("File Length: ");
@@ -123,22 +143,26 @@ String Network::fileDownload(FuncPtrInt callback, FileIO** fileIO, String target
       int downloadSize = 0;
       int preDownloadedPercent = 0;
 
-      uint8_t buff[128] = { 0 };
+      uint8_t buff[128] = {0};
 
-      WiFiClient* stream = http.getStreamPtr();
-      while (http.connected() && (fileSize > 0 || fileSize == -1)) {
+      WiFiClient *stream = http.getStreamPtr();
+      while (http.connected() && (fileSize > 0 || fileSize == -1))
+      {
         size_t size = stream->available();
-        if (size) {
+        if (size)
+        {
           int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
           file.write(buff, c);
           (*fileIO)->mdContextUpdate(buff, c);
 
-          if (fileSize > 0) fileSize -= c;
+          if (fileSize > 0)
+            fileSize -= c;
 
           downloadSize += c;
           int downloadedPercent = int((downloadSize * 100 / unDownloadSize));
 
-          if (preDownloadedPercent != downloadedPercent) {
+          if (preDownloadedPercent != downloadedPercent)
+          {
             callback(downloadedPercent);
             preDownloadedPercent = downloadedPercent;
           }
@@ -150,15 +174,14 @@ String Network::fileDownload(FuncPtrInt callback, FileIO** fileIO, String target
       Serial.println();
       Serial.print("[HTTP] connection closed or file end.\n");
 
-
       (*fileIO)->closeFile(file);
       (*fileIO)->listSPIFFS();
       Serial.println("======MD5 CHECKSUM");
       md5CheckSum = (*fileIO)->md5Result();
       Serial.println(md5CheckSum);
-
-
-    } else {
+    }
+    else
+    {
       Serial.println("Error on HTTP request");
     }
 

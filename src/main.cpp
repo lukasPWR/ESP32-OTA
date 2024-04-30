@@ -34,7 +34,7 @@ SimpleOTA *simpleOTA;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("Test 2");
+  Serial.println("Test 5");
   simpleOTA = new SimpleOTA();
   simpleOTA->begin();
 }

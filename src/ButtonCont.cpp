@@ -1,5 +1,5 @@
 #include <ButtonCont.h>
-#define RIGHT_BUTTON_PIN 35
+#define RIGHT_BUTTON_PIN 36
 
 static ButtonCont* instance = NULL;
 

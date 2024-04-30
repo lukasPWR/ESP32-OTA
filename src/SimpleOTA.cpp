@@ -32,7 +32,7 @@ void networkDownloadEvent(int percent)
     instance->currentState = FIRMWARE_DOWNLOAD_START;
   }
   Serial.println(percent);
-  //instance->display->downloadScreen(percent);
+  // instance->display->downloadScreen(percent);
 }
 
 void SimpleOTA::begin()
@@ -41,7 +41,7 @@ void SimpleOTA::begin()
   this->initVersion();
   this->initNetwork();
   this->initFileIO();
-   this->initButton();
+  this->initButton();
 }
 
 void SimpleOTA::loop()
@@ -153,8 +153,8 @@ void SimpleOTA::serverFirmwareCheck()
   {
     if (version->hasNewUpdate())
     {
-    //  display->newMessage("New Build Available! ->");
-    Serial.println("New Build Available! ->");
+      //  display->newMessage("New Build Available! ->");
+      Serial.println("New Build Available! ->");
     }
   }
 }
@@ -165,6 +165,7 @@ void SimpleOTA::startDownload()
   void (*ptr)(int) = &networkDownloadEvent;
 
   bool compareMD5Checksum = version->md5CompareTo(network->fileDownload(ptr, &fileIO, version->getFirmwareServerPath()));
+  Serial.println(version->getFirmwareServerPath());
   bool compareFileSize = version->fileSizeCompareTo(fileIO->getFileSize(FileIO::TEMP_BIN_FILE));
 
   Serial.println("======compareMD5Checksum");
@@ -174,15 +175,15 @@ void SimpleOTA::startDownload()
 
   if (compareMD5Checksum && compareFileSize)
   {
-   // display->downloadSuccess();
+    // display->downloadSuccess();
     this->updateFirmware();
   }
   else
   {
-  //  display->downloadFailure(version->getCPName());
+    //  display->downloadFailure(version->getCPName());
     Serial.println(version->getCPName());
     delay(5000);
-  //  display->fillBlackScreen();
+    //display->fillBlackScreen();
     currentState = SERVER_FOUND;
   }
 }
@@ -190,7 +191,7 @@ void SimpleOTA::startDownload()
 void SimpleOTA::updateFirmware()
 {
   currentState = FIRMWARE_DOWNLOAD_START;
-  //display->firmwareScreen(true, false);
+  // display->firmwareScreen(true, false);
   Updater *updater = new Updater();
   if (updater->updateFromFS(&fileIO))
   {
@@ -198,16 +199,16 @@ void SimpleOTA::updateFirmware()
 
     currentState = FIRMWARE_UPDATED;
     version->saveVersion(version->newFirmwareVersion());
-   // display->firmwareScreen(false, true);
+    // display->firmwareScreen(false, true);
 
     ESP.restart();
   }
   else
   {
     Serial.println("UPDATE FAILURE");
-   // display->firmwareScreen(false, false);
+    // display->firmwareScreen(false, false);
     delay(3000);
-   // display->fillBlackScreen();
+    // display->fillBlackScreen();
     currentState = SERVER_FOUND;
   }
   delete updater;
